@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings, Files } from "lucide-react";
+import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings, Files, GitCompare } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { BulkResumeUpload } from "@/components/BulkResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
 import { AnalysisResult } from "@/components/AnalysisResult";
+import { ComparisonView } from "@/components/ComparisonView";
 
 interface Profile {
   id: string;
@@ -46,6 +47,7 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResultData | null>(null);
+  const [comparisonAnalyses, setComparisonAnalyses] = useState<[AnalysisResultData, AnalysisResultData] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -454,8 +456,26 @@ const Dashboard = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="history">
-            <AnalysisHistory onSelectAnalysis={setCurrentAnalysis} />
+          <TabsContent value="history" className="space-y-6">
+            {comparisonAnalyses ? (
+              <ComparisonView
+                analysisA={comparisonAnalyses[0]}
+                analysisB={comparisonAnalyses[1]}
+                onClose={() => setComparisonAnalyses(null)}
+                onRemove={(which) => {
+                  setComparisonAnalyses(null);
+                }}
+              />
+            ) : null}
+            
+            <AnalysisHistory 
+              onSelectAnalysis={setCurrentAnalysis}
+              onCompare={(analyses) => setComparisonAnalyses(analyses)}
+            />
+
+            {currentAnalysis && !comparisonAnalyses && (
+              <AnalysisResult analysis={currentAnalysis} />
+            )}
           </TabsContent>
         </Tabs>
       </main>
