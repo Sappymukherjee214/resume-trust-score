@@ -14,7 +14,15 @@ const logStep = (step: string, details?: any) => {
 
 // Product ID to plan mapping
 const PRODUCT_TO_PLAN: Record<string, string> = {
-  "prod_TergWX07w8j5z4": "pro", // Pro plan
+  "prod_TergWX07w8j5z4": "pro", // Pro plan - $49/month
+  "prod_TesdVm6bzn2Yt0": "enterprise", // Enterprise plan - $99/month
+};
+
+// Plan limits
+const PLAN_LIMITS: Record<string, number> = {
+  "free": 5,
+  "pro": 100,
+  "enterprise": 9999, // Unlimited
 };
 
 serve(async (req) => {
@@ -88,12 +96,12 @@ serve(async (req) => {
         endDate: subscriptionEnd 
       });
 
-      // Update profile with pro plan limits
+      // Update profile with plan limits
       await supabaseClient
         .from("profiles")
         .update({ 
           subscription_plan: plan,
-          monthly_analysis_limit: 100 // Pro limit
+          monthly_analysis_limit: PLAN_LIMITS[plan] || 100
         })
         .eq("user_id", user.id);
     } else {
@@ -104,7 +112,7 @@ serve(async (req) => {
         .from("profiles")
         .update({ 
           subscription_plan: "free",
-          monthly_analysis_limit: 5 // Free limit
+          monthly_analysis_limit: PLAN_LIMITS["free"]
         })
         .eq("user_id", user.id);
     }

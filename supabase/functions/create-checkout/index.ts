@@ -12,6 +12,12 @@ const logStep = (step: string, details?: any) => {
   console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
 };
 
+// Price IDs for each plan
+const PRICE_IDS: Record<string, string> = {
+  "pro": "price_1ShXx4GibDgwEX9DYQkZozU4", // $49/month
+  "enterprise": "price_1ShYsGGibDgwEX9D7LHYvi1c", // $99/month
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -24,6 +30,16 @@ serve(async (req) => {
 
   try {
     logStep("Function started");
+
+    // Get the plan from request body
+    const body = await req.json().catch(() => ({}));
+    const plan = body.plan || "pro";
+    const priceId = PRICE_IDS[plan];
+    
+    if (!priceId) {
+      throw new Error(`Invalid plan: ${plan}`);
+    }
+    logStep("Plan selected", { plan, priceId });
 
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
@@ -49,13 +65,13 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
 
-    // Create checkout session for Pro subscription
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1ShXx4GibDgwEX9DYQkZozU4", // Pro plan price ID
+          price: priceId,
           quantity: 1,
         },
       ],
@@ -64,6 +80,7 @@ serve(async (req) => {
       cancel_url: `${origin}/dashboard?checkout=canceled`,
       metadata: {
         user_id: user.id,
+        plan: plan,
       },
     });
 

@@ -45,7 +45,7 @@ const Pricing = () => {
     }
   };
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: string) => {
     if (!isAuthenticated) {
       navigate("/auth?mode=signup");
       return;
@@ -53,7 +53,9 @@ const Pricing = () => {
 
     setCheckoutLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: { plan }
+      });
       
       if (error) throw error;
       
@@ -103,6 +105,7 @@ const Pricing = () => {
   const plans = [
     {
       name: "Free",
+      id: "free",
       price: "$0",
       period: "/month",
       features: [
@@ -116,6 +119,7 @@ const Pricing = () => {
     },
     {
       name: "Pro",
+      id: "pro",
       price: "$49",
       period: "/month",
       features: [
@@ -127,22 +131,23 @@ const Pricing = () => {
       ],
       current: currentPlan === "pro",
       popular: true,
-      action: currentPlan === "pro" ? "manage" : "upgrade"
+      action: currentPlan === "pro" ? "manage" : (currentPlan === "enterprise" ? null : "upgrade")
     },
     {
       name: "Enterprise",
-      price: "Custom",
-      period: "",
+      id: "enterprise",
+      price: "$99",
+      period: "/month",
       features: [
         "Unlimited resume analyses",
-        "Team access & roles",
+        "Team workspaces & collaboration",
         "API integration",
         "Custom AI prompts",
         "Dedicated support",
         "SLA guarantee"
       ],
       current: currentPlan === "enterprise",
-      action: "contact"
+      action: currentPlan === "enterprise" ? "manage" : "upgrade"
     }
   ];
 
@@ -228,7 +233,7 @@ const Pricing = () => {
                 {plan.action === "upgrade" && (
                   <Button
                     className="w-full"
-                    onClick={handleUpgrade}
+                    onClick={() => handleUpgrade(plan.id)}
                     disabled={checkoutLoading}
                   >
                     {checkoutLoading ? (
@@ -237,7 +242,7 @@ const Pricing = () => {
                         Loading...
                       </>
                     ) : (
-                      "Upgrade to Pro"
+                      `Upgrade to ${plan.name}`
                     )}
                   </Button>
                 )}
@@ -263,11 +268,6 @@ const Pricing = () => {
                   </Button>
                 )}
 
-                {plan.action === "contact" && (
-                  <Button variant="outline" className="w-full">
-                    Contact Sales
-                  </Button>
-                )}
 
                 {!plan.action && plan.current && (
                   <Button variant="secondary" className="w-full" disabled>
