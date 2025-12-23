@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp } from "lucide-react";
+import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2 } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
 import { AnalysisResult } from "@/components/AnalysisResult";
@@ -40,11 +40,13 @@ interface AnalysisResultData {
 }
 
 const Dashboard = () => {
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpgrading, setIsUpgrading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -58,9 +60,48 @@ const Dashboard = () => {
     if (error) {
       console.error("Error fetching profile:", error);
     } else if (data) {
+      // Check subscription status and update profile
+      checkSubscription();
       setProfile(data as Profile);
     }
   }, []);
+
+  const checkSubscription = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (!error && data) {
+        // Refresh profile after subscription check
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user?.id || session?.user?.id)
+          .maybeSingle();
+        
+        if (profileData) {
+          setProfile(profileData as Profile);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking subscription:", error);
+    }
+  }, [user, session]);
+
+  // Check for checkout success
+  useEffect(() => {
+    const checkoutStatus = searchParams.get("checkout");
+    if (checkoutStatus === "success") {
+      toast({
+        title: "Subscription activated!",
+        description: "Your Pro plan is now active. You have 100 analyses per month.",
+      });
+      checkSubscription();
+    } else if (checkoutStatus === "canceled") {
+      toast({
+        title: "Checkout canceled",
+        description: "You can upgrade anytime from the pricing page.",
+      });
+    }
+  }, [searchParams, toast, checkSubscription]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -102,6 +143,27 @@ const Dashboard = () => {
     navigate("/");
   };
 
+  const handleUpgrade = async () => {
+    setIsUpgrading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout");
+      
+      if (error) throw error;
+      
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create checkout session",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpgrading(false);
+    }
+  };
+
   const handleAnalysisComplete = (analysis: AnalysisResultData) => {
     setCurrentAnalysis(analysis);
     // Refresh profile to update count
@@ -140,9 +202,19 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">
                 {profile?.email}
               </span>
-              <Badge variant="secondary" className="capitalize">
-                {profile?.subscription_plan || "free"}
-              </Badge>
+              {profile?.subscription_plan === "pro" ? (
+                <Badge className="bg-primary/10 text-primary border-primary/20">
+                  <Crown className="h-3 w-3 mr-1" />
+                  Pro
+                </Badge>
+              ) : (
+                <Link to="/pricing">
+                  <Button size="sm" variant="outline">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Upgrade
+                  </Button>
+                </Link>
+              )}
             </div>
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
               <LogOut className="h-5 w-5" />
@@ -235,8 +307,24 @@ const Dashboard = () => {
                         <p className="text-sm text-destructive">
                           You've reached your monthly limit. Upgrade to Pro for more analyses.
                         </p>
-                        <Button variant="destructive" size="sm" className="mt-2">
-                          Upgrade Plan
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={handleUpgrade}
+                          disabled={isUpgrading}
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Crown className="mr-2 h-4 w-4" />
+                              Upgrade to Pro
+                            </>
+                          )}
                         </Button>
                       </div>
                     )}
