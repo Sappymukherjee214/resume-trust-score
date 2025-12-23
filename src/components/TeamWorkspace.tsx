@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Plus, Settings, UserPlus, Crown, Trash2, Share2, Eye } from "lucide-react";
+import { Users, Plus, Settings, UserPlus, Crown, Trash2, Share2, Eye, Mail, Clock, Loader2 } from "lucide-react";
 
 interface Workspace {
   id: string;
@@ -30,6 +30,14 @@ interface WorkspaceMember {
   };
 }
 
+interface PendingInvitation {
+  id: string;
+  email: string;
+  role: "admin" | "member" | "viewer";
+  created_at: string;
+  expires_at: string;
+}
+
 interface SharedAnalysis {
   id: string;
   analysis_id: string;
@@ -47,12 +55,15 @@ interface SharedAnalysis {
 
 interface TeamWorkspaceProps {
   userId: string;
+  userEmail?: string;
+  userName?: string;
 }
 
-export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
+export const TeamWorkspace = ({ userId, userEmail, userName }: TeamWorkspaceProps) => {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null);
   const [members, setMembers] = useState<WorkspaceMember[]>([]);
+  const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [sharedAnalyses, setSharedAnalyses] = useState<SharedAnalysis[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isInviting, setIsInviting] = useState(false);
@@ -98,6 +109,16 @@ export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
       .eq("workspace_id", workspaceId);
     
     setMembers((membersData || []) as WorkspaceMember[]);
+
+    // Fetch pending invitations
+    const { data: pendingData } = await supabase
+      .from("pending_invitations")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .is("accepted_at", null)
+      .gt("expires_at", new Date().toISOString());
+
+    setPendingInvitations((pendingData || []) as PendingInvitation[]);
 
     // Fetch shared analyses
     const { data: sharedData } = await supabase
@@ -160,47 +181,66 @@ export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
 
     setIsInviting(true);
     
-    // Look up user by email
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .eq("email", inviteEmail)
-      .single();
+    try {
+      // Call the edge function to send invitation
+      const { data, error } = await supabase.functions.invoke("send-workspace-invitation", {
+        body: {
+          email: inviteEmail,
+          workspaceId: selectedWorkspace.id,
+          workspaceName: selectedWorkspace.name,
+          role: inviteRole,
+          inviterName: userName || userEmail || "A team member"
+        }
+      });
 
-    if (!profile) {
+      if (error) throw error;
+
+      if (data.type === "existing_user") {
+        toast({
+          title: "Member added",
+          description: `${inviteEmail} has been added to the workspace`
+        });
+      } else {
+        toast({
+          title: "Invitation sent",
+          description: `An invitation email has been sent to ${inviteEmail}`
+        });
+      }
+
+      setInviteEmail("");
+      fetchWorkspaceDetails(selectedWorkspace.id);
+    } catch (error: any) {
       toast({
-        title: "User not found",
-        description: "No user found with that email address",
+        title: "Error",
+        description: error.message || "Failed to send invitation",
         variant: "destructive"
       });
-      setIsInviting(false);
-      return;
     }
+    
+    setIsInviting(false);
+  };
+
+  const cancelInvitation = async (invitationId: string) => {
+    if (!selectedWorkspace) return;
 
     const { error } = await supabase
-      .from("workspace_members")
-      .insert({
-        workspace_id: selectedWorkspace.id,
-        user_id: profile.user_id,
-        role: inviteRole,
-        joined_at: new Date().toISOString()
-      });
+      .from("pending_invitations")
+      .delete()
+      .eq("id", invitationId);
 
     if (error) {
       toast({
         title: "Error",
-        description: error.code === "23505" ? "User is already a member" : "Failed to invite member",
+        description: "Failed to cancel invitation",
         variant: "destructive"
       });
     } else {
       toast({
-        title: "Member invited",
-        description: `${inviteEmail} has been added to the workspace`
+        title: "Invitation cancelled",
+        description: "The invitation has been cancelled"
       });
-      setInviteEmail("");
       fetchWorkspaceDetails(selectedWorkspace.id);
     }
-    setIsInviting(false);
   };
 
   const removeMember = async (memberId: string) => {
@@ -331,7 +371,7 @@ export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="members">
                     <Users className="h-4 w-4 mr-1" />
-                    Members ({members.length})
+                    Members ({members.length + pendingInvitations.length})
                   </TabsTrigger>
                   <TabsTrigger value="shared">
                     <Share2 className="h-4 w-4 mr-1" />
@@ -345,6 +385,7 @@ export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
                     <div className="flex gap-2">
                       <Input
                         placeholder="Email address"
+                        type="email"
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
                       />
@@ -361,8 +402,12 @@ export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
                           <SelectItem value="viewer">Viewer</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button onClick={inviteMember} disabled={isInviting}>
-                        <UserPlus className="h-4 w-4" />
+                      <Button onClick={inviteMember} disabled={isInviting || !inviteEmail.trim()}>
+                        {isInviting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <UserPlus className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   )}
@@ -402,7 +447,44 @@ export const TeamWorkspace = ({ userId }: TeamWorkspaceProps) => {
                     </div>
                   ))}
 
-                  {members.length === 0 && (
+                  {/* Pending invitations */}
+                  {pendingInvitations.length > 0 && (
+                    <div className="pt-2">
+                      <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Pending Invitations
+                      </p>
+                      {pendingInvitations.map((invitation) => (
+                        <div key={invitation.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-dashed border-border mb-2">
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <span className="text-sm">{invitation.email}</span>
+                              <p className="text-xs text-muted-foreground">
+                                Expires {new Date(invitation.expires_at).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-muted-foreground">
+                              {invitation.role}
+                            </Badge>
+                            {isOwner && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => cancelInvitation(invitation.id)}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {members.length === 0 && pendingInvitations.length === 0 && (
                     <p className="text-center text-muted-foreground py-4">
                       No members yet. Invite someone to collaborate!
                     </p>

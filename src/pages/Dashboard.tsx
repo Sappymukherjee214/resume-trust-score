@@ -503,7 +503,13 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="team" className="space-y-6">
-            {user && <TeamWorkspace userId={user.id} />}
+            {user && (
+              <TeamWorkspace 
+                userId={user.id} 
+                userEmail={profile?.email}
+                userName={profile?.full_name || undefined}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </main>
