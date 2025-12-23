@@ -14,7 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_results: {
+        Row: {
+          created_at: string
+          credibility_score: number
+          detailed_analysis: Json | null
+          flags: Json
+          id: string
+          resume_id: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credibility_score: number
+          detailed_analysis?: Json | null
+          flags?: Json
+          id?: string
+          resume_id: string
+          risk_level: Database["public"]["Enums"]["risk_level"]
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credibility_score?: number
+          detailed_analysis?: Json | null
+          flags?: Json
+          id?: string
+          resume_id?: string
+          risk_level?: Database["public"]["Enums"]["risk_level"]
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_results_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          monthly_analysis_count: number
+          monthly_analysis_limit: number
+          subscription_plan: Database["public"]["Enums"]["subscription_plan"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          monthly_analysis_count?: number
+          monthly_analysis_limit?: number
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          monthly_analysis_count?: number
+          monthly_analysis_limit?: number
+          subscription_plan?: Database["public"]["Enums"]["subscription_plan"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      resumes: {
+        Row: {
+          created_at: string
+          extracted_text: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          extracted_text?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      usage_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          metadata: Json | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +156,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      risk_level: "low" | "medium" | "high"
+      subscription_plan: "free" | "pro" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +284,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      risk_level: ["low", "medium", "high"],
+      subscription_plan: ["free", "pro", "enterprise"],
+    },
   },
 } as const
