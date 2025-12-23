@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Shield, CheckCircle, AlertTriangle, Zap, FileSearch, Users, ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
+import neuralBg from "@/assets/neural-network-bg.png";
 
 const Index = () => {
   const features = [
@@ -36,9 +37,22 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Neural network background */}
+      <div 
+        className="fixed inset-0 z-0"
+        style={{
+          backgroundImage: `url(${neuralBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      />
+      {/* Dark overlay for readability */}
+      <div className="fixed inset-0 z-0 bg-background/85" />
+
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/70 backdrop-blur-md border-b border-border/50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-8 w-8 text-primary" />
@@ -56,7 +70,7 @@ const Index = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
+      <section className="pt-32 pb-20 px-4 relative z-10">
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="secondary" className="mb-6">
             <Star className="h-3 w-3 mr-1" />
@@ -87,7 +101,7 @@ const Index = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-card border-y border-border">
+      <section className="py-16 bg-card/80 backdrop-blur-sm border-y border-border relative z-10">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
@@ -103,7 +117,7 @@ const Index = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 relative z-10">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -116,7 +130,7 @@ const Index = () => {
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-card border-border hover:shadow-lg transition-shadow">
+              <Card key={index} className="bg-card/90 backdrop-blur-sm border-border hover:shadow-lg transition-shadow">
                 <CardContent className="p-6">
                   <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                     <feature.icon className="h-6 w-6 text-primary" />
@@ -135,7 +149,7 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
-      <section className="py-20 px-4 bg-card border-y border-border">
+      <section className="py-20 px-4 bg-card/80 backdrop-blur-sm border-y border-border relative z-10">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -161,7 +175,7 @@ const Index = () => {
       </section>
 
       {/* Pricing Preview */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 relative z-10">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
@@ -200,7 +214,7 @@ const Index = () => {
             ].map((plan, index) => (
               <Card 
                 key={index} 
-                className={`relative ${plan.popular ? 'border-primary shadow-lg' : 'border-border'}`}
+                className={`relative bg-card/90 backdrop-blur-sm ${plan.popular ? 'border-primary shadow-lg shadow-primary/20' : 'border-border'}`}
               >
                 {plan.popular && (
                   <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -237,7 +251,7 @@ const Index = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-primary">
+      <section className="py-20 px-4 bg-primary relative z-10">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
             Ready to Verify Your Next Hire?
@@ -255,7 +269,7 @@ const Index = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 px-4 bg-card border-t border-border">
+      <footer className="py-12 px-4 bg-card/80 backdrop-blur-sm border-t border-border relative z-10">
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
