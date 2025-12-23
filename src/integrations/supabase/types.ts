@@ -124,6 +124,72 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_analyses: {
+        Row: {
+          analysis_id: string
+          id: string
+          shared_at: string
+          shared_by: string
+          workspace_id: string
+        }
+        Insert: {
+          analysis_id: string
+          id?: string
+          shared_at?: string
+          shared_by: string
+          workspace_id: string
+        }
+        Update: {
+          analysis_id?: string
+          id?: string
+          shared_at?: string
+          shared_by?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_analyses_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analysis_results"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_analyses_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "team_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_workspaces: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       usage_logs: {
         Row: {
           action: string
@@ -169,6 +235,41 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_members: {
+        Row: {
+          id: string
+          invited_at: string
+          joined_at: string | null
+          role: Database["public"]["Enums"]["workspace_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          role?: Database["public"]["Enums"]["workspace_role"]
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_members_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "team_workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -182,11 +283,20 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_workspace_admin: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
+      is_workspace_member: {
+        Args: { _user_id: string; _workspace_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
       risk_level: "low" | "medium" | "high"
       subscription_plan: "free" | "pro" | "enterprise"
+      workspace_role: "admin" | "member" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -317,6 +427,7 @@ export const Constants = {
       app_role: ["admin", "moderator", "user"],
       risk_level: ["low", "medium", "high"],
       subscription_plan: ["free", "pro", "enterprise"],
+      workspace_role: ["admin", "member", "viewer"],
     },
   },
 } as const

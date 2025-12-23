@@ -7,12 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings, Files, GitCompare } from "lucide-react";
+import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings, Files, GitCompare, Users } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { BulkResumeUpload } from "@/components/BulkResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
 import { AnalysisResult } from "@/components/AnalysisResult";
 import { ComparisonView } from "@/components/ComparisonView";
+import { TeamWorkspace } from "@/components/TeamWorkspace";
+import { RiskTrendChart } from "@/components/RiskTrendChart";
+import neuralBg from "@/assets/neural-network-bg.png";
 
 interface Profile {
   id: string;
@@ -203,9 +206,19 @@ const Dashboard = () => {
     : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {/* Background image */}
+      <div 
+        className="fixed inset-0 z-0 opacity-5 pointer-events-none"
+        style={{
+          backgroundImage: `url(${neuralBg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat"
+        }}
+      />
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-md border-b border-border relative">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Shield className="h-8 w-8 text-primary" />
@@ -245,7 +258,7 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 relative z-10">
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card>
@@ -295,20 +308,31 @@ const Dashboard = () => {
           </Card>
         </div>
 
+        {/* Risk Trend Chart */}
+        {user && (
+          <div className="mb-8">
+            <RiskTrendChart userId={user.id} />
+          </div>
+        )}
+
         {/* Main Content */}
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Single Upload
+              <span className="hidden sm:inline">Single</span> Upload
             </TabsTrigger>
             <TabsTrigger value="bulk" className="flex items-center gap-2">
               <Files className="h-4 w-4" />
-              Bulk Upload
+              Bulk
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
               History
+            </TabsTrigger>
+            <TabsTrigger value="team" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Team
             </TabsTrigger>
           </TabsList>
 
@@ -476,6 +500,10 @@ const Dashboard = () => {
             {currentAnalysis && !comparisonAnalyses && (
               <AnalysisResult analysis={currentAnalysis} />
             )}
+          </TabsContent>
+
+          <TabsContent value="team" className="space-y-6">
+            {user && <TeamWorkspace userId={user.id} />}
           </TabsContent>
         </Tabs>
       </main>
