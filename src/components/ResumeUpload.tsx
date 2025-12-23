@@ -205,6 +205,31 @@ export const ResumeUpload = ({ onAnalysisComplete, disabled }: ResumeUploadProps
         metadata: { resume_id: resumeData.id, file_name: selectedFile.name },
       });
 
+      // Send email notification for high-risk resumes
+      if (analysisData.risk_level === 'high') {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("email, full_name")
+            .eq("user_id", session.user.id)
+            .single();
+
+          await supabase.functions.invoke("send-risk-notification", {
+            body: {
+              userEmail: profile?.email || session.user.email,
+              userName: profile?.full_name,
+              fileName: selectedFile.name,
+              riskLevel: analysisData.risk_level,
+              credibilityScore: analysisData.credibility_score,
+              summary: analysisData.summary,
+              flagCount: analysisData.flags?.length || 0,
+            },
+          });
+        } catch (emailError) {
+          console.error("Failed to send notification email:", emailError);
+        }
+      }
+
       toast({
         title: "Analysis complete!",
         description: `Credibility score: ${analysisData.credibility_score}/100`,

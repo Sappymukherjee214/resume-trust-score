@@ -7,8 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings } from "lucide-react";
+import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings, Files } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
+import { BulkResumeUpload } from "@/components/BulkResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
 import { AnalysisResult } from "@/components/AnalysisResult";
 
@@ -294,10 +295,14 @@ const Dashboard = () => {
 
         {/* Main Content */}
         <Tabs defaultValue="upload" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="upload" className="flex items-center gap-2">
               <Upload className="h-4 w-4" />
-              Upload Resume
+              Single Upload
+            </TabsTrigger>
+            <TabsTrigger value="bulk" className="flex items-center gap-2">
+              <Files className="h-4 w-4" />
+              Bulk Upload
             </TabsTrigger>
             <TabsTrigger value="history" className="flex items-center gap-2">
               <History className="h-4 w-4" />
@@ -365,6 +370,80 @@ const Dashboard = () => {
                           <h3 className="text-lg font-medium text-foreground">No Analysis Yet</h3>
                           <p className="text-sm text-muted-foreground">
                             Upload a resume to see the AI analysis results here.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="bulk" className="space-y-6">
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Files className="h-5 w-5" />
+                      Bulk Resume Upload
+                    </CardTitle>
+                    <CardDescription>
+                      Upload multiple resumes at once for batch analysis.
+                      High-risk resumes will trigger email notifications.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BulkResumeUpload 
+                      onAnalysisComplete={handleAnalysisComplete}
+                      disabled={remainingAnalyses <= 0}
+                      remainingAnalyses={remainingAnalyses}
+                    />
+                    {remainingAnalyses <= 0 && (
+                      <div className="mt-4 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                        <p className="text-sm text-destructive">
+                          You've reached your monthly limit. Upgrade to Pro for more analyses.
+                        </p>
+                        <Button 
+                          variant="destructive" 
+                          size="sm" 
+                          className="mt-2"
+                          onClick={handleUpgrade}
+                          disabled={isUpgrading}
+                        >
+                          {isUpgrading ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <Crown className="mr-2 h-4 w-4" />
+                              Upgrade to Pro
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div>
+                {currentAnalysis ? (
+                  <AnalysisResult analysis={currentAnalysis} />
+                ) : (
+                  <Card className="h-full">
+                    <CardContent className="flex items-center justify-center h-full min-h-[400px] text-center">
+                      <div className="space-y-4">
+                        <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mx-auto">
+                          <Files className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-medium text-foreground">No Analysis Yet</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Upload multiple resumes to analyze them in bulk.
                           </p>
                         </div>
                       </div>
