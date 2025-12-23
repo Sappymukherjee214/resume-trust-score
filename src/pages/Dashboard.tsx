@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2 } from "lucide-react";
+import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
 import { AnalysisResult } from "@/components/AnalysisResult";
@@ -47,6 +47,7 @@ const Dashboard = () => {
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResultData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpgrading, setIsUpgrading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -64,6 +65,16 @@ const Dashboard = () => {
       checkSubscription();
       setProfile(data as Profile);
     }
+
+    // Check if user is admin
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    
+    setIsAdmin(!!roles);
   }, []);
 
   const checkSubscription = useCallback(async () => {
@@ -216,6 +227,14 @@ const Dashboard = () => {
                 </Link>
               )}
             </div>
+            {isAdmin && (
+              <Link to="/admin">
+                <Button variant="outline" size="sm">
+                  <Settings className="h-4 w-4 mr-1" />
+                  Admin
+                </Button>
+              </Link>
+            )}
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
               <LogOut className="h-5 w-5" />
             </Button>
