@@ -200,21 +200,7 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8 relative z-10">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <Card>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                <FileText className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Plan</p>
-                <p className="text-2xl font-bold text-foreground">
-                  Free - Unlimited
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
+        <div className="mb-8">
           <Card>
             <CardContent className="p-6 flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-secondary flex items-center justify-center">
@@ -223,7 +209,7 @@ const Dashboard = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
                 <p className="text-2xl font-bold text-foreground">
-                  Active
+                  Active - Free Forever
                 </p>
               </div>
             </CardContent>
