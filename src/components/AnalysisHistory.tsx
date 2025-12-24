@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { FileText, Calendar, ChevronRight, Inbox, Download, GitCompare, Filter, Search } from "lucide-react";
 import { exportToCSV } from "@/lib/exportCsv";
 import { useToast } from "@/hooks/use-toast";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 interface AnalysisResultData {
   id: string;
@@ -44,9 +45,11 @@ export const AnalysisHistory = ({ onSelectAnalysis, onCompare, comparisonMode = 
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<string>("all");
   const { toast } = useToast();
+  const { trackViewHistory, trackExportCSV, trackCompareResumes, trackViewAnalysis } = useAnalytics();
 
   useEffect(() => {
     fetchAnalyses();
+    trackViewHistory();
   }, []);
 
   useEffect(() => {
@@ -140,10 +143,16 @@ export const AnalysisHistory = ({ onSelectAnalysis, onCompare, comparisonMode = 
       return;
     }
     exportToCSV(filteredAnalyses, "resume-analyses");
+    trackExportCSV(filteredAnalyses.length);
     toast({
       title: "Export complete",
       description: `Exported ${filteredAnalyses.length} analysis result(s) to CSV.`,
     });
+  };
+
+  const handleSelectAnalysis = (analysis: AnalysisResultData) => {
+    trackViewAnalysis(analysis.id, analysis.risk_level);
+    onSelectAnalysis(analysis);
   };
 
   const toggleCompareSelection = (analysis: AnalysisResultData) => {
@@ -181,6 +190,7 @@ export const AnalysisHistory = ({ onSelectAnalysis, onCompare, comparisonMode = 
     const analysisB = analyses.find(a => a.id === selectedIds[1]);
 
     if (analysisA && analysisB && onCompare) {
+      trackCompareResumes();
       onCompare([analysisA, analysisB]);
       setSelectedForCompare(new Set());
     }
@@ -341,7 +351,7 @@ export const AnalysisHistory = ({ onSelectAnalysis, onCompare, comparisonMode = 
               )}
               
               <button
-                onClick={() => onSelectAnalysis(analysis)}
+                onClick={() => handleSelectAnalysis(analysis)}
                 className="flex-1 flex items-center gap-4 text-left"
               >
                 <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
