@@ -59,6 +59,28 @@ const Dashboard = () => {
   }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
+    // Check if user is admin first
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle();
+    
+    const userIsAdmin = !!roles;
+    setIsAdmin(userIsAdmin);
+
+    // If not admin, redirect to home page
+    if (!userIsAdmin) {
+      toast({
+        title: "Access Denied",
+        description: "Only administrators can access the dashboard.",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+
     const { data, error } = await supabase
       .from("profiles")
       .select("id, email, full_name")
@@ -70,17 +92,7 @@ const Dashboard = () => {
     } else if (data) {
       setProfile(data as Profile);
     }
-
-    // Check if user is admin
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    
-    setIsAdmin(!!roles);
-  }, []);
+  }, [navigate, toast]);
 
   useEffect(() => {
     // Set up auth state listener
