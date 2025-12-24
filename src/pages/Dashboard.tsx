@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, AlertTriangle, CheckCircle, TrendingUp, Crown, Loader2, Settings, Files, GitCompare, Users } from "lucide-react";
+import { Shield, Upload, History, LogOut, FileText, CheckCircle, TrendingUp, Settings, Files, Users } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { BulkResumeUpload } from "@/components/BulkResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
@@ -21,9 +21,6 @@ interface Profile {
   id: string;
   email: string;
   full_name: string | null;
-  subscription_plan: string;
-  monthly_analysis_count: number;
-  monthly_analysis_limit: number;
 }
 
 interface AnalysisResultData {
@@ -45,14 +42,12 @@ interface AnalysisResultData {
 }
 
 const Dashboard = () => {
-  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentAnalysis, setCurrentAnalysis] = useState<AnalysisResultData | null>(null);
   const [comparisonAnalyses, setComparisonAnalyses] = useState<[AnalysisResultData, AnalysisResultData] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpgrading, setIsUpgrading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -60,15 +55,13 @@ const Dashboard = () => {
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select("id, email, full_name")
       .eq("user_id", userId)
       .maybeSingle();
 
     if (error) {
       console.error("Error fetching profile:", error);
     } else if (data) {
-      // Check subscription status and update profile
-      checkSubscription();
       setProfile(data as Profile);
     }
 
@@ -82,43 +75,6 @@ const Dashboard = () => {
     
     setIsAdmin(!!roles);
   }, []);
-
-  const checkSubscription = useCallback(async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
-      if (!error && data) {
-        // Refresh profile after subscription check
-        const { data: profileData } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("user_id", user?.id || session?.user?.id)
-          .maybeSingle();
-        
-        if (profileData) {
-          setProfile(profileData as Profile);
-        }
-      }
-    } catch (error) {
-      console.error("Error checking subscription:", error);
-    }
-  }, [user, session]);
-
-  // Check for checkout success
-  useEffect(() => {
-    const checkoutStatus = searchParams.get("checkout");
-    if (checkoutStatus === "success") {
-      toast({
-        title: "Subscription activated!",
-        description: "Your Pro plan is now active. You have 100 analyses per month.",
-      });
-      checkSubscription();
-    } else if (checkoutStatus === "canceled") {
-      toast({
-        title: "Checkout canceled",
-        description: "You can upgrade anytime from the pricing page.",
-      });
-    }
-  }, [searchParams, toast, checkSubscription]);
 
   useEffect(() => {
     // Set up auth state listener
@@ -160,33 +116,8 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const handleUpgrade = async () => {
-    setIsUpgrading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("create-checkout");
-      
-      if (error) throw error;
-      
-      if (data.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to create checkout session",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpgrading(false);
-    }
-  };
-
   const handleAnalysisComplete = (analysis: AnalysisResultData) => {
     setCurrentAnalysis(analysis);
-    // Refresh profile to update count
-    if (user) {
-      fetchProfile(user.id);
-    }
   };
 
   if (isLoading) {
@@ -200,10 +131,6 @@ const Dashboard = () => {
   if (!user) {
     return null;
   }
-
-  const remainingAnalyses = profile 
-    ? profile.monthly_analysis_limit - profile.monthly_analysis_count 
-    : 0;
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -229,19 +156,9 @@ const Dashboard = () => {
               <span className="text-sm text-muted-foreground">
                 {profile?.email}
               </span>
-              {profile?.subscription_plan === "pro" ? (
-                <Badge className="bg-primary/10 text-primary border-primary/20">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Pro
-                </Badge>
-              ) : (
-                <Link to="/pricing">
-                  <Button size="sm" variant="outline">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Upgrade
-                  </Button>
-                </Link>
-              )}
+              <Badge className="bg-primary/10 text-primary border-primary/20">
+                Free
+              </Badge>
             </div>
             {isAdmin && (
               <Link to="/admin">
@@ -260,30 +177,16 @@ const Dashboard = () => {
 
       <main className="container mx-auto px-4 py-8 relative z-10">
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Card>
             <CardContent className="p-6 flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
                 <FileText className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Analyses Used</p>
+                <p className="text-sm text-muted-foreground">Plan</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {profile?.monthly_analysis_count || 0} / {profile?.monthly_analysis_limit || 5}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6 flex items-center gap-4">
-              <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Remaining</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {remainingAnalyses} analyses
+                  Free - Unlimited
                 </p>
               </div>
             </CardContent>
@@ -292,16 +195,12 @@ const Dashboard = () => {
           <Card>
             <CardContent className="p-6 flex items-center gap-4">
               <div className="h-12 w-12 rounded-lg bg-secondary flex items-center justify-center">
-                {remainingAnalyses > 0 ? (
-                  <CheckCircle className="h-6 w-6 text-secondary-foreground" />
-                ) : (
-                  <AlertTriangle className="h-6 w-6 text-destructive" />
-                )}
+                <CheckCircle className="h-6 w-6 text-secondary-foreground" />
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Status</p>
                 <p className="text-2xl font-bold text-foreground">
-                  {remainingAnalyses > 0 ? "Active" : "Limit Reached"}
+                  Active
                 </p>
               </div>
             </CardContent>
@@ -350,34 +249,8 @@ const Dashboard = () => {
                   <CardContent>
                     <ResumeUpload 
                       onAnalysisComplete={handleAnalysisComplete}
-                      disabled={remainingAnalyses <= 0}
+                      disabled={false}
                     />
-                    {remainingAnalyses <= 0 && (
-                      <div className="mt-4 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-                        <p className="text-sm text-destructive">
-                          You've reached your monthly limit. Upgrade to Pro for more analyses.
-                        </p>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          className="mt-2"
-                          onClick={handleUpgrade}
-                          disabled={isUpgrading}
-                        >
-                          {isUpgrading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Crown className="mr-2 h-4 w-4" />
-                              Upgrade to Pro
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -423,35 +296,9 @@ const Dashboard = () => {
                   <CardContent>
                     <BulkResumeUpload 
                       onAnalysisComplete={handleAnalysisComplete}
-                      disabled={remainingAnalyses <= 0}
-                      remainingAnalyses={remainingAnalyses}
+                      disabled={false}
+                      remainingAnalyses={9999}
                     />
-                    {remainingAnalyses <= 0 && (
-                      <div className="mt-4 p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-                        <p className="text-sm text-destructive">
-                          You've reached your monthly limit. Upgrade to Pro for more analyses.
-                        </p>
-                        <Button 
-                          variant="destructive" 
-                          size="sm" 
-                          className="mt-2"
-                          onClick={handleUpgrade}
-                          disabled={isUpgrading}
-                        >
-                          {isUpgrading ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <Crown className="mr-2 h-4 w-4" />
-                              Upgrade to Pro
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -469,7 +316,7 @@ const Dashboard = () => {
                         <div>
                           <h3 className="text-lg font-medium text-foreground">No Analysis Yet</h3>
                           <p className="text-sm text-muted-foreground">
-                            Upload multiple resumes to analyze them in bulk.
+                            Upload resumes to see the AI analysis results here.
                           </p>
                         </div>
                       </div>
@@ -482,34 +329,22 @@ const Dashboard = () => {
 
           <TabsContent value="history" className="space-y-6">
             {comparisonAnalyses ? (
-              <ComparisonView
+              <ComparisonView 
                 analysisA={comparisonAnalyses[0]}
                 analysisB={comparisonAnalyses[1]}
                 onClose={() => setComparisonAnalyses(null)}
-                onRemove={(which) => {
-                  setComparisonAnalyses(null);
-                }}
+                onRemove={(which) => setComparisonAnalyses(null)}
               />
-            ) : null}
-            
-            <AnalysisHistory 
-              onSelectAnalysis={setCurrentAnalysis}
-              onCompare={(analyses) => setComparisonAnalyses(analyses)}
-            />
-
-            {currentAnalysis && !comparisonAnalyses && (
-              <AnalysisResult analysis={currentAnalysis} />
+            ) : (
+              <AnalysisHistory 
+                onSelectAnalysis={setCurrentAnalysis}
+                onCompare={(analyses) => setComparisonAnalyses(analyses)}
+              />
             )}
           </TabsContent>
 
           <TabsContent value="team" className="space-y-6">
-            {user && (
-              <TeamWorkspace 
-                userId={user.id} 
-                userEmail={profile?.email}
-                userName={profile?.full_name || undefined}
-              />
-            )}
+            <TeamWorkspace userId={user.id} userEmail={user.email || ''} />
           </TabsContent>
         </Tabs>
       </main>

@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, CheckCircle, AlertTriangle, Zap, FileSearch, Users, ArrowRight, Star } from "lucide-react";
+import { Shield, CheckCircle, AlertTriangle, Zap, FileSearch, ArrowRight, Star } from "lucide-react";
 import { Link } from "react-router-dom";
 import neuralBg from "@/assets/neural-network-bg.png";
 
@@ -63,7 +63,7 @@ const Index = () => {
               <Button variant="ghost">Sign In</Button>
             </Link>
             <Link to="/auth?mode=signup">
-              <Button>Get Started</Button>
+              <Button>Get Started Free</Button>
             </Link>
           </div>
         </div>
@@ -74,7 +74,7 @@ const Index = () => {
         <div className="container mx-auto text-center max-w-4xl">
           <Badge variant="secondary" className="mb-6">
             <Star className="h-3 w-3 mr-1" />
-            Trusted by 200+ Companies
+            100% Free - No Credit Card Required
           </Badge>
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             Detect Fake Resumes with{" "}
@@ -82,12 +82,12 @@ const Index = () => {
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
             Stop wasting time on fraudulent candidates. Our AI analyzes resumes for red flags, 
-            inconsistencies, and exaggerations in seconds.
+            inconsistencies, and exaggerations in seconds. Completely free.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/auth?mode=signup">
               <Button size="lg" className="px-8">
-                Start Free Trial
+                Start Free Now
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>
@@ -174,78 +174,51 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Pricing Preview */}
+      {/* Free Plan Highlight */}
       <section className="py-20 px-4 relative z-10">
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Simple, Transparent Pricing
+              Completely Free
             </h2>
             <p className="text-lg text-muted-foreground">
-              Start free. Upgrade when you need more.
+              All features included. No limits. No credit card required.
             </p>
           </div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              { 
-                name: "Free", 
-                price: "$0", 
-                period: "/month",
-                features: ["5 resumes/month", "Basic risk indicators", "7-day history"],
-                cta: "Get Started",
-                popular: false
-              },
-              { 
-                name: "Pro", 
-                price: "$49", 
-                period: "/month",
-                features: ["100 resumes/month", "Detailed AI explanations", "Unlimited history", "Downloadable reports"],
-                cta: "Start Free Trial",
-                popular: true
-              },
-              { 
-                name: "Enterprise", 
-                price: "Custom", 
-                period: "",
-                features: ["Unlimited resumes", "Team access", "API integration", "Priority support"],
-                cta: "Contact Sales",
-                popular: false
-              }
-            ].map((plan, index) => (
-              <Card 
-                key={index} 
-                className={`relative bg-card/90 backdrop-blur-sm ${plan.popular ? 'border-primary shadow-lg shadow-primary/20' : 'border-border'}`}
-              >
-                {plan.popular && (
-                  <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    Most Popular
-                  </Badge>
-                )}
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-semibold text-foreground mb-2">{plan.name}</h3>
-                  <div className="mb-4">
-                    <span className="text-4xl font-bold text-foreground">{plan.price}</span>
-                    <span className="text-muted-foreground">{plan.period}</span>
-                  </div>
-                  <ul className="space-y-3 mb-6">
-                    {plan.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <CheckCircle className="h-4 w-4 text-primary" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to="/auth?mode=signup">
-                    <Button 
-                      className="w-full" 
-                      variant={plan.popular ? "default" : "outline"}
-                    >
-                      {plan.cta}
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="max-w-md mx-auto">
+            <Card className="relative bg-card/90 backdrop-blur-sm border-primary shadow-lg shadow-primary/20">
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2">
+                Free Forever
+              </Badge>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-semibold text-foreground mb-2">Full Access</h3>
+                <div className="mb-4">
+                  <span className="text-4xl font-bold text-foreground">$0</span>
+                  <span className="text-muted-foreground">/month</span>
+                </div>
+                <ul className="space-y-3 mb-6">
+                  {[
+                    "Unlimited resume analyses",
+                    "Detailed AI explanations",
+                    "Risk scoring & categorization",
+                    "Red flag detection",
+                    "Bulk upload support",
+                    "Team workspaces",
+                    "Full history access"
+                  ].map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-primary" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                <Link to="/auth?mode=signup">
+                  <Button className="w-full">
+                    Get Started Free
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>
