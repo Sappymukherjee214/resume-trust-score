@@ -1,19 +1,19 @@
 project_id = "ssthzvolysdlftxunpwp"
 
 [functions.analyze-resume]
-verify_jwt = true
+verify_jwt = false
 
 [functions.check-subscription]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-checkout]
-verify_jwt = true
+verify_jwt = false
 
 [functions.customer-portal]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-risk-notification]
-verify_jwt = true
+verify_jwt = false
 
 [functions.send-workspace-invitation]
-verify_jwt = true
+verify_jwt = false
