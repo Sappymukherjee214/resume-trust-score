@@ -10,6 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -22,7 +29,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { Shield, ArrowLeft, User as UserIcon, Bell, Loader2, Save, Moon, Sun, Trash2 } from "lucide-react";
+import { Shield, ArrowLeft, User as UserIcon, Bell, Loader2, Save, Monitor, Moon, Sun, Trash2 } from "lucide-react";
 import { z } from "zod";
 
 const profileSchema = z.object({
@@ -246,7 +253,7 @@ const Settings = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+              <Sun className="h-5 w-5" />
               Appearance
             </CardTitle>
             <CardDescription>
@@ -256,15 +263,36 @@ const Settings = () => {
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <Label>Dark Mode</Label>
+                <Label>Theme</Label>
                 <p className="text-sm text-muted-foreground">
-                  Switch between light and dark themes
+                  Select your preferred theme
                 </p>
               </div>
-              <Switch
-                checked={theme === "dark"}
-                onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-              />
+              <Select value={theme} onValueChange={setTheme}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="Select theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="light">
+                    <div className="flex items-center gap-2">
+                      <Sun className="h-4 w-4" />
+                      Light
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="dark">
+                    <div className="flex items-center gap-2">
+                      <Moon className="h-4 w-4" />
+                      Dark
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="system">
+                    <div className="flex items-center gap-2">
+                      <Monitor className="h-4 w-4" />
+                      System
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
