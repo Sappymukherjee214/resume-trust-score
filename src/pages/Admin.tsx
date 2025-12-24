@@ -20,9 +20,6 @@ import {
   ArrowLeft,
   Search,
   Filter,
-  BarChart3,
-  Clock,
-  TrendingUp,
   Loader2
 } from "lucide-react";
 
@@ -47,9 +44,6 @@ interface UserProfile {
   user_id: string;
   email: string;
   full_name: string | null;
-  subscription_plan: string;
-  monthly_analysis_count: number;
-  monthly_analysis_limit: number;
   created_at: string;
 }
 
@@ -67,8 +61,7 @@ const Admin = () => {
     highRisk: 0,
     mediumRisk: 0,
     lowRisk: 0,
-    totalUsers: 0,
-    proUsers: 0
+    totalUsers: 0
   });
   
   // Filter states
@@ -142,7 +135,7 @@ const Admin = () => {
       // Fetch all users/profiles
       const { data: usersData, error: usersError } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, user_id, email, full_name, created_at")
         .order("created_at", { ascending: false });
 
       if (usersError) throw usersError;
@@ -166,15 +159,13 @@ const Admin = () => {
       const highRisk = analysesWithProfiles.filter((a: AnalysisWithDetails) => a.risk_level === "high").length;
       const mediumRisk = analysesWithProfiles.filter((a: AnalysisWithDetails) => a.risk_level === "medium").length;
       const lowRisk = analysesWithProfiles.filter((a: AnalysisWithDetails) => a.risk_level === "low").length;
-      const proUsers = (usersData || []).filter((u: UserProfile) => u.subscription_plan === "pro").length;
 
       setStats({
         totalResumes: analysesWithProfiles.length,
         highRisk,
         mediumRisk,
         lowRisk,
-        totalUsers: usersData?.length || 0,
-        proUsers
+        totalUsers: usersData?.length || 0
       });
     } catch (error) {
       console.error("Error fetching admin data:", error);
@@ -267,7 +258,7 @@ const Admin = () => {
 
       <main className="container mx-auto px-4 py-8">
         {/* Stats Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
           <Card>
             <CardContent className="p-4 text-center">
               <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
@@ -305,14 +296,6 @@ const Admin = () => {
               <Users className="h-8 w-8 text-primary mx-auto mb-2" />
               <p className="text-2xl font-bold text-foreground">{stats.totalUsers}</p>
               <p className="text-xs text-muted-foreground">Total Users</p>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-4 text-center">
-              <TrendingUp className="h-8 w-8 text-accent-foreground mx-auto mb-2" />
-              <p className="text-2xl font-bold text-foreground">{stats.proUsers}</p>
-              <p className="text-xs text-muted-foreground">Pro Users</p>
             </CardContent>
           </Card>
         </div>
@@ -446,15 +429,13 @@ const Admin = () => {
                       <TableRow>
                         <TableHead>Email</TableHead>
                         <TableHead>Name</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Usage</TableHead>
                         <TableHead>Joined</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredUsers.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                             No users found
                           </TableCell>
                         </TableRow>
@@ -463,29 +444,6 @@ const Admin = () => {
                           <TableRow key={user.id}>
                             <TableCell className="font-medium">{user.email}</TableCell>
                             <TableCell>{user.full_name || "—"}</TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={user.subscription_plan === "pro" ? "default" : "secondary"}
-                                className="capitalize"
-                              >
-                                {user.subscription_plan}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm">
-                                  {user.monthly_analysis_count} / {user.monthly_analysis_limit}
-                                </span>
-                                <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-primary rounded-full"
-                                    style={{ 
-                                      width: `${Math.min(100, (user.monthly_analysis_count / user.monthly_analysis_limit) * 100)}%` 
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {formatDate(user.created_at)}
                             </TableCell>
