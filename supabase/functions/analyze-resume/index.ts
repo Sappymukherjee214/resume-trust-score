@@ -6,6 +6,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Generic error messages to avoid information leakage
+const ERROR_MESSAGES = {
+  INVALID_INPUT: 'Invalid or insufficient resume content provided',
+  RATE_LIMITED: 'Too many requests. Please try again later.',
+  CREDITS_DEPLETED: 'Service temporarily unavailable. Please try again later.',
+  PROCESSING_FAILED: 'Unable to process resume. Please try again.',
+  UNAUTHORIZED: 'Authentication required',
+};
+
+const logStep = (step: string, details?: unknown) => {
+  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
+  console.log(`[ANALYZE-RESUME] ${step}${detailsStr}`);
+};
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -15,20 +29,46 @@ serve(async (req) => {
   try {
     const { resumeText, fileName } = await req.json();
     
-    if (!resumeText || resumeText.trim().length === 0) {
+    // Enhanced input validation
+    if (!resumeText || typeof resumeText !== 'string') {
       return new Response(
-        JSON.stringify({ error: 'Resume text is required' }),
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-    if (!LOVABLE_API_KEY) {
-      throw new Error('LOVABLE_API_KEY is not configured');
+    const trimmedText = resumeText.trim();
+    
+    // Validate minimum content length
+    if (trimmedText.length < 50) {
+      return new Response(
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('Analyzing resume:', fileName);
-    console.log('Resume text length:', resumeText.length);
+    // Validate that content contains readable text (at least some alphabetic characters)
+    if (!/[a-zA-Z]{10,}/.test(trimmedText)) {
+      return new Response(
+        JSON.stringify({ error: ERROR_MESSAGES.INVALID_INPUT }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Limit maximum text length to prevent abuse
+    const maxLength = 50000;
+    const processedText = trimmedText.length > maxLength ? trimmedText.substring(0, maxLength) : trimmedText;
+
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      logStep('ERROR', 'LOVABLE_API_KEY not configured');
+      return new Response(
+        JSON.stringify({ error: ERROR_MESSAGES.PROCESSING_FAILED }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    logStep('Analyzing resume', { fileName, textLength: processedText.length });
 
     const systemPrompt = `You are an expert hiring analyst and resume verification specialist. Your task is to analyze resumes for potential red flags, inconsistencies, and signs of fabrication or exaggeration.
 
@@ -81,35 +121,37 @@ Be thorough but fair. Not every unusual element indicates fraud.`;
         model: 'google/gemini-2.5-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Please analyze this resume and provide your assessment:\n\n${resumeText}` }
+          { role: 'user', content: `Please analyze this resume and provide your assessment:\n\n${processedText}` }
         ],
       }),
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI Gateway error:', response.status, errorText);
+      logStep('AI Gateway error', { status: response.status });
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }),
+          JSON.stringify({ error: ERROR_MESSAGES.RATE_LIMITED }),
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: 'AI credits depleted. Please add more credits.' }),
+          JSON.stringify({ error: ERROR_MESSAGES.CREDITS_DEPLETED }),
           { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      return new Response(
+        JSON.stringify({ error: ERROR_MESSAGES.PROCESSING_FAILED }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
     const aiResponse = data.choices[0].message.content;
     
-    console.log('AI Response:', aiResponse);
+    logStep('AI response received');
 
     // Parse the JSON response from AI
     let analysisResult;
@@ -122,7 +164,7 @@ Be thorough but fair. Not every unusual element indicates fraud.`;
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      console.error('Error parsing AI response:', parseError);
+      logStep('Parse error, using fallback analysis');
       // Return a default analysis if parsing fails
       analysisResult = {
         credibility_score: 50,
@@ -150,9 +192,9 @@ Be thorough but fair. Not every unusual element indicates fraud.`;
     );
 
   } catch (error) {
-    console.error('Error in analyze-resume function:', error);
+    logStep('ERROR', { message: error instanceof Error ? error.message : 'Unknown error' });
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error occurred' }),
+      JSON.stringify({ error: ERROR_MESSAGES.PROCESSING_FAILED }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
