@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Upload, History, LogOut, FileText, CheckCircle, TrendingUp, Settings, Files, Users } from "lucide-react";
+import { useAnalytics } from "@/hooks/useAnalytics";
+import { Shield, Upload, History, LogOut, FileText, CheckCircle, TrendingUp, Settings as SettingsIcon, Files, Users } from "lucide-react";
 import { ResumeUpload } from "@/components/ResumeUpload";
 import { BulkResumeUpload } from "@/components/BulkResumeUpload";
 import { AnalysisHistory } from "@/components/AnalysisHistory";
@@ -51,6 +52,11 @@ const Dashboard = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { trackPageView, trackViewAnalysis, trackCompareResumes, trackViewHistory } = useAnalytics();
+
+  useEffect(() => {
+    trackPageView("dashboard");
+  }, []);
 
   const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
@@ -163,11 +169,16 @@ const Dashboard = () => {
             {isAdmin && (
               <Link to="/admin">
                 <Button variant="outline" size="sm">
-                  <Settings className="h-4 w-4 mr-1" />
+                  <SettingsIcon className="h-4 w-4 mr-1" />
                   Admin
                 </Button>
               </Link>
             )}
+            <Link to="/settings">
+              <Button variant="ghost" size="icon">
+                <SettingsIcon className="h-5 w-5" />
+              </Button>
+            </Link>
             <Button variant="ghost" size="icon" onClick={handleSignOut}>
               <LogOut className="h-5 w-5" />
             </Button>

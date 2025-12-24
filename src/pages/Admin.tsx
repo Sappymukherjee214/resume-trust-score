@@ -20,7 +20,10 @@ import {
   ArrowLeft,
   Search,
   Filter,
-  Loader2
+  Loader2,
+  BarChart3,
+  TrendingUp,
+  Activity
 } from "lucide-react";
 
 interface AnalysisWithDetails {
@@ -47,6 +50,14 @@ interface UserProfile {
   created_at: string;
 }
 
+interface UsageLog {
+  id: string;
+  user_id: string;
+  action: string;
+  metadata: any;
+  created_at: string;
+}
+
 const Admin = () => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -56,12 +67,15 @@ const Admin = () => {
   // Data states
   const [analyses, setAnalyses] = useState<AnalysisWithDetails[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [usageLogs, setUsageLogs] = useState<UsageLog[]>([]);
+  const [actionCounts, setActionCounts] = useState<Record<string, number>>({});
   const [stats, setStats] = useState({
     totalResumes: 0,
     highRisk: 0,
     mediumRisk: 0,
     lowRisk: 0,
-    totalUsers: 0
+    totalUsers: 0,
+    totalActions: 0
   });
   
   // Filter states
@@ -140,6 +154,24 @@ const Admin = () => {
 
       if (usersError) throw usersError;
 
+      // Fetch usage logs
+      const { data: logsData, error: logsError } = await supabase
+        .from("usage_logs")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (logsError) throw logsError;
+
+      setUsageLogs(logsData || []);
+
+      // Count actions
+      const counts: Record<string, number> = {};
+      (logsData || []).forEach((log: UsageLog) => {
+        counts[log.action] = (counts[log.action] || 0) + 1;
+      });
+      setActionCounts(counts);
+
       // Create a map of user_id to profile
       const userMap = new Map();
       (usersData || []).forEach((profile: UserProfile) => {
@@ -165,7 +197,8 @@ const Admin = () => {
         highRisk,
         mediumRisk,
         lowRisk,
-        totalUsers: usersData?.length || 0
+        totalUsers: usersData?.length || 0,
+        totalActions: logsData?.length || 0
       });
     } catch (error) {
       console.error("Error fetching admin data:", error);
@@ -310,6 +343,10 @@ const Admin = () => {
             <TabsTrigger value="users" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Users
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
             </TabsTrigger>
           </TabsList>
 
@@ -458,6 +495,124 @@ const Admin = () => {
                     Showing {filteredUsers.length} of {users.length} users
                   </p>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <Activity className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-foreground">{stats.totalActions}</p>
+                  <p className="text-xs text-muted-foreground">Total Actions</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <FileText className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-foreground">{actionCounts["resume_upload"] || actionCounts["resume_analysis"] || 0}</p>
+                  <p className="text-xs text-muted-foreground">Resume Uploads</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <TrendingUp className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-foreground">{actionCounts["view_history"] || 0}</p>
+                  <p className="text-xs text-muted-foreground">History Views</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-4 text-center">
+                  <BarChart3 className="h-8 w-8 text-primary mx-auto mb-2" />
+                  <p className="text-2xl font-bold text-foreground">{actionCounts["export_csv"] || 0}</p>
+                  <p className="text-xs text-muted-foreground">CSV Exports</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Feature Usage Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {Object.entries(actionCounts)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([action, count]) => (
+                      <div key={action} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <Activity className="h-4 w-4 text-primary" />
+                          </div>
+                          <span className="text-sm font-medium text-foreground capitalize">
+                            {action.replace(/_/g, " ")}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-primary rounded-full transition-all"
+                              style={{ 
+                                width: `${Math.min((count / Math.max(...Object.values(actionCounts))) * 100, 100)}%` 
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm font-bold text-foreground w-12 text-right">
+                            {count}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  {Object.keys(actionCounts).length === 0 && (
+                    <p className="text-center text-muted-foreground py-8">
+                      No usage data available yet
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Recent Activity</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Action</TableHead>
+                        <TableHead>User ID</TableHead>
+                        <TableHead>Date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {usageLogs.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                            No activity logs found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        usageLogs.slice(0, 20).map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell className="font-medium capitalize">
+                              {log.action.replace(/_/g, " ")}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {log.user_id.substring(0, 8)}...
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(log.created_at)}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
